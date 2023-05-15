@@ -4,8 +4,25 @@ const { v4: uuidV4 } = require("uuid");
 // INSTANCIANDO O SERVER
 const app = express();
 app.use(express.json());
+
 const port = 3333;
+
 const customers = [];
+
+// Middlewer de verifiação
+function verifyIfExistsAccountCPF(request, response, next) {
+  const { cpf } = request.headers;
+
+  const customer = customers.find((customer) => customer.cpf === cpf);
+
+  if (!customer) {
+    response.status(400).json({ error: "Usuário não encontrado" });
+  }
+
+  request.customer = customer;
+
+  return next();
+}
 
 //CRIANDO CONTA DO USUÁRIO
 app.post("/account", (request, response) => {
@@ -30,14 +47,8 @@ app.post("/account", (request, response) => {
 });
 
 //BUSCANDO SALDO BANCÁRIO
-app.get("/statement", (request, response) => {
-  const { cpf } = request.headers;
-
-  const customer = customers.find((customer) => customer.cpf === cpf);
-
-  if (!customer) {
-    response.status(400).json({ error: "Usuário não encontrado" });
-  }
+app.get("/statement", verifyIfExistsAccountCPF, (request, response) => {
+  const { customer } = request;
 
   return response.json(customer.statement);
 });
